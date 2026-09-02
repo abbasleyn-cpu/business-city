@@ -1,1 +1,554 @@
+<!DOCTYPE html>
+<html lang="de">
 
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+<title>Business City Online</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef1f5;
+    color: #222;
+}
+
+header {
+    background: #20242a;
+    color: white;
+    text-align: center;
+    padding: 22px;
+}
+
+.container {
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+}
+
+.panel {
+    background: white;
+    padding: 20px;
+    margin-bottom: 18px;
+    border-radius: 15px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08);
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 7px 0 12px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+button {
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin: 4px;
+    color: white;
+    cursor: pointer;
+    background: #222;
+    font-size: 15px;
+}
+
+button:hover {
+    opacity: .85;
+}
+
+button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.blue {
+    background: #1565c0;
+}
+
+.green {
+    background: #2e7d32;
+}
+
+.red {
+    background: #c62828;
+}
+
+.orange {
+    background: #ef6c00;
+}
+
+.purple {
+    background: #6a1b9a;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.room-code {
+    text-align: center;
+    font-size: 34px;
+    font-weight: bold;
+    letter-spacing: 5px;
+    background: #f1f3f5;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+}
+
+.players {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.player-card {
+    background: white;
+    border-radius: 14px;
+    padding: 15px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.07);
+}
+
+.player-card.active {
+    outline: 4px solid #1565c0;
+}
+
+.player-card.dead {
+    opacity: .4;
+    text-decoration: line-through;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    background: #30343a;
+    padding: 7px;
+    border-radius: 15px;
+}
+
+.field {
+    min-height: 140px;
+    background: white;
+    padding: 10px;
+    border-radius: 9px;
+    border: 4px solid transparent;
+}
+
+.field.current {
+    border-color: #1565c0;
+}
+
+.field.company {
+    background: #e7ebff;
+}
+
+.field.tax {
+    background: #ffe1e1;
+}
+
+.field.event {
+    background: #fff3c4;
+}
+
+.field.bonus {
+    background: #def5ff;
+}
+
+.field.police {
+    background: #e5e5e5;
+}
+
+.field.bank {
+    background: #e1f3e1;
+}
+
+.field.stock {
+    background: #eadfff;
+}
+
+.field.risk {
+    background: #ffe5c7;
+}
+
+.field.build {
+    background: #f3e5cf;
+}
+
+.field strong {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.field small {
+    display: block;
+    color: #666;
+    margin-top: 4px;
+}
+
+.tokens {
+    margin-top: 10px;
+    font-size: 25px;
+}
+
+.log {
+    height: 270px;
+    overflow-y: auto;
+    background: #fafafa;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.log-line {
+    padding: 7px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.status {
+    font-size: 19px;
+    font-weight: bold;
+    margin: 8px 0;
+}
+
+#popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.popup-box {
+    width: 90%;
+    max-width: 450px;
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+}
+
+.popup-title {
+    font-size: 25px;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+.company-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.company-card {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+@media (max-width: 800px) {
+
+    .board {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .players {
+        grid-template-columns: 1fr;
+    }
+
+    .company-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<header>
+
+<h1>🏙️ BUSINESS CITY ONLINE</h1>
+
+<div>
+2–4 Spieler · Online-Multiplayer
+</div>
+
+</header>
+
+
+<div class="container">
+
+
+<!-- =====================================================
+     LOBBY
+===================================================== -->
+
+<div
+    id="lobby"
+    class="panel">
+
+<h2>🌐 Online spielen</h2>
+
+<label>Dein Name</label>
+
+<input
+    id="nameInput"
+    maxlength="20"
+    placeholder="z. B. Luca">
+
+
+<button
+    class="green"
+    onclick="createRoom()">
+
+🏠 Raum erstellen
+
+</button>
+
+
+<hr>
+
+
+<label>Raumcode</label>
+
+<input
+    id="roomInput"
+    maxlength="6"
+    placeholder="ABC123">
+
+
+<button
+    class="blue"
+    onclick="joinRoom()">
+
+🚪 Beitreten
+
+</button>
+
+
+<div
+    id="connectionStatus"
+    style="margin-top:10px;">
+
+🔌 Verbinde...
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     RAUM
+===================================================== -->
+
+<div
+    id="room"
+    class="panel hidden">
+
+<h2>🏠 Spielraum</h2>
+
+<div
+    id="roomCode"
+    class="room-code">
+
+------
+
+</div>
+
+<p style="text-align:center;">
+Diesen Code an deine Mitspieler schicken.
+</p>
+
+
+<div id="lobbyPlayers"></div>
+
+
+<button
+    id="startButton"
+    class="green"
+    onclick="startGame()">
+
+🚀 Spiel starten
+
+</button>
+
+</div>
+
+
+<!-- =====================================================
+     GAME
+===================================================== -->
+
+<div
+    id="game"
+    class="hidden">
+
+
+<div class="panel">
+
+<div class="status">
+🔄 Runde:
+<span id="round">1</span>
+</div>
+
+<div class="status">
+🎮 Am Zug:
+<span id="turn">-</span>
+</div>
+
+<div class="status">
+🎲 Würfel:
+<span id="dice">-</span>
+</div>
+
+<div class="status">
+📈 Aktienkurs:
+<span id="stockPrice">100 Fr.</span>
+</div>
+
+</div>
+
+
+<div
+    id="board"
+    class="board">
+</div>
+
+
+<div class="panel">
+
+<h2>👥 Spieler</h2>
+
+<div
+    id="players"
+    class="players">
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h2>🎮 Steuerung</h2>
+
+<button
+    id="rollButton"
+    class="blue"
+    onclick="rollDice()">
+
+🎲 Würfeln
+
+</button>
+
+<button
+    class="purple"
+    onclick="bank()">
+
+🏦 Bank
+
+</button>
+
+<button
+    class="orange"
+    onclick="buyStock()">
+
+📈 Aktie
+
+</button>
+
+<button
+    class="green"
+    onclick="build()">
+
+🏗️ Ausbauen
+
+</button>
+
+
+<div
+    id="actionText"
+    style="margin-top:12px;">
+
+-
+
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h2>🏢 Unternehmen</h2>
+
+<div
+    id="companies"
+    class="company-grid">
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h2>📜 Spielverlauf</h2>
+
+<div
+    id="log"
+    class="log">
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     POPUP
+===================================================== -->
+
+<div id="popup">
+
+<div class="popup-box">
+
+<div
+    id="popupTitle"
+    class="popup-title">
+</div>
+
+<div
+    id="popupText">
+</div>
+
+<div
+    id="popupButtons"
+    style="margin-top:15px;">
+</div>
+
+</div>
+
+</div>
+
+
+<script src="/app.js"></script>
+
+</body>
+</html>
