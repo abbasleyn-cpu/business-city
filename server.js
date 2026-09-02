@@ -8,6 +8,12 @@ const PORT = process.env.PORT || 3000;
 
 const rooms = new Map();
 
+const START_MONEY = 1500;
+const START_BONUS = 200;
+const WIN_MILESTONE = 10000;
+
+const symbols = ["🔵", "🔴", "🟢", "🟡"];
+
 /* =========================================================
    SPIELBRETT
 ========================================================= */
@@ -17,7 +23,6 @@ const fields = [
         name: "START",
         type: "start"
     },
-
     {
         name: "Kleiner Laden",
         type: "company",
@@ -25,13 +30,11 @@ const fields = [
         rent: 40,
         income: 60
     },
-
     {
         name: "Steuern",
         type: "tax",
         amount: 150
     },
-
     {
         name: "Café",
         type: "company",
@@ -39,12 +42,10 @@ const fields = [
         rent: 60,
         income: 90
     },
-
     {
         name: "Ereignis",
         type: "event"
     },
-
     {
         name: "Restaurant",
         type: "company",
@@ -52,13 +53,11 @@ const fields = [
         rent: 90,
         income: 120
     },
-
     {
         name: "Bonus",
         type: "bonus",
         amount: 250
     },
-
     {
         name: "Supermarkt",
         type: "company",
@@ -66,12 +65,10 @@ const fields = [
         rent: 120,
         income: 160
     },
-
     {
         name: "Polizei",
         type: "police"
     },
-
     {
         name: "Hotel",
         type: "company",
@@ -79,12 +76,10 @@ const fields = [
         rent: 160,
         income: 220
     },
-
     {
         name: "Börse",
         type: "stock"
     },
-
     {
         name: "Fabrik",
         type: "company",
@@ -92,23 +87,19 @@ const fields = [
         rent: 220,
         income: 290
     },
-
     {
         name: "Steuern",
         type: "tax",
         amount: 300
     },
-
     {
         name: "Bank",
         type: "bank"
     },
-
     {
         name: "Ereignis",
         type: "event"
     },
-
     {
         name: "Tech-Firma",
         type: "company",
@@ -116,23 +107,19 @@ const fields = [
         rent: 320,
         income: 430
     },
-
     {
         name: "Risiko",
         type: "risk"
     },
-
     {
         name: "Bauplatz",
         type: "build"
     },
-
     {
         name: "Superbonus",
         type: "bonus",
         amount: 500
     },
-
     {
         name: "Große Firma",
         type: "company",
@@ -142,15 +129,8 @@ const fields = [
     }
 ];
 
-const symbols = ["🔵", "🔴", "🟢", "🟡"];
-
-const START_MONEY = 1500;
-const START_BONUS = 200;
-const WIN_MILESTONE = 10000;
-
-
 /* =========================================================
-   HTTP SERVER
+   HTTP
 ========================================================= */
 
 const server = http.createServer((req, res) => {
@@ -159,37 +139,46 @@ const server = http.createServer((req, res) => {
     if (req.url === "/") {
         filePath = path.join(__dirname, "public", "index.html");
     } else {
+        const cleanUrl = decodeURIComponent(
+            req.url.split("?")[0]
+        );
+
         filePath = path.join(
             __dirname,
             "public",
-            decodeURIComponent(req.url.split("?")[0])
+            cleanUrl
         );
     }
 
-    fs.readFile(filePath, (error, content) => {
+    fs.readFile(filePath, (error, data) => {
         if (error) {
             res.writeHead(404, {
                 "Content-Type": "text/plain; charset=utf-8"
             });
+
             res.end("404 - Datei nicht gefunden");
             return;
         }
 
-        let contentType = "text/plain; charset=utf-8";
+        let contentType =
+            "text/plain; charset=utf-8";
 
         if (filePath.endsWith(".html")) {
-            contentType = "text/html; charset=utf-8";
+            contentType =
+                "text/html; charset=utf-8";
         } else if (filePath.endsWith(".js")) {
-            contentType = "text/javascript; charset=utf-8";
+            contentType =
+                "application/javascript; charset=utf-8";
         } else if (filePath.endsWith(".css")) {
-            contentType = "text/css; charset=utf-8";
+            contentType =
+                "text/css; charset=utf-8";
         }
 
         res.writeHead(200, {
             "Content-Type": contentType
         });
 
-        res.end(content);
+        res.end(data);
     });
 });
 
@@ -198,9 +187,10 @@ const server = http.createServer((req, res) => {
    WEBSOCKET
 ========================================================= */
 
-const wss = new WebSocket.Server({
-    server
-});
+const wss =
+    new WebSocket.Server({
+        server
+    });
 
 
 /* =========================================================
@@ -223,22 +213,16 @@ function send(ws, type, data = {}) {
 
 
 function broadcast(room, type, data = {}) {
-    for (const player of room.players.values()) {
-        send(player.ws, type, data);
+    for (
+        const player
+        of room.players.values()
+    ) {
+        send(
+            player.ws,
+            type,
+            data
+        );
     }
-}
-
-
-function broadcastGame(room) {
-    const game = createPublicGame(room);
-
-    broadcast(
-        room,
-        "state",
-        {
-            game
-        }
-    );
 }
 
 
@@ -246,18 +230,25 @@ function randomRoomCode() {
     const chars =
         "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-    let code = "";
+    let code;
 
     do {
         code = "";
 
-        for (let i = 0; i < 6; i++) {
-            code += chars[
-                Math.floor(
-                    Math.random() * chars.length
-                )
-            ];
+        for (
+            let i = 0;
+            i < 6;
+            i++
+        ) {
+            code +=
+                chars[
+                    Math.floor(
+                        Math.random() *
+                        chars.length
+                    )
+                ];
         }
+
     } while (rooms.has(code));
 
     return code;
@@ -269,35 +260,37 @@ function randomId() {
 }
 
 
-function money(value) {
-    return Math.round(value);
-}
-
-
 function activePlayers(room) {
-    return [...room.players.values()]
-        .filter(player => player.active);
+    return [
+        ...room.players.values()
+    ].filter(
+        player => player.active
+    );
 }
 
 
-function playerById(room, id) {
-    return room.players.get(id);
-}
-
-
-function currentPlayer(room) {
+function getCurrentPlayer(room) {
     const id =
-        room.turnOrder[room.currentTurn];
+        room.turnOrder[
+            room.currentTurn
+        ];
 
     return room.players.get(id);
 }
 
 
 function ownerOf(room, fieldIndex) {
-    for (const player of room.players.values()) {
+
+    for (
+        const player
+        of room.players.values()
+    ) {
+
         if (
             player.active &&
-            player.properties.includes(fieldIndex)
+            player.properties.includes(
+                fieldIndex
+            )
         ) {
             return player;
         }
@@ -308,57 +301,118 @@ function ownerOf(room, fieldIndex) {
 
 
 function getIncome(player) {
+
     let total = 0;
 
-    for (const fieldIndex of player.properties) {
-        const field = fields[fieldIndex];
+    for (
+        const fieldIndex
+        of player.properties
+    ) {
 
-        if (field && field.income) {
-            total += field.income;
+        const field =
+            fields[fieldIndex];
+
+        if (
+            field &&
+            field.income
+        ) {
+            total +=
+                field.income;
         }
     }
 
-    total += player.stocks * 60;
+    total +=
+        player.stocks * 60;
 
     return total;
 }
 
 
 /* =========================================================
-   ÖFFENTLICHEN SPIELSTAND ERSTELLEN
+   ÖFFENTLICHEN SPIELSTAND
 ========================================================= */
 
-function createPublicGame(room) {
+function publicGame(room) {
+
     return {
-        roomCode: room.code,
-        hostId: room.hostId,
-        status: room.status,
-        round: room.round,
-        currentTurn: room.currentTurn,
-        turnOrder: room.turnOrder,
 
-        stockPrice: room.stockPrice,
+        roomCode:
+            room.code,
 
-        lastDice: room.lastDice,
+        hostId:
+            room.hostId,
 
-        log: room.log.slice(-80),
+        status:
+            room.status,
 
-        fields,
+        round:
+            room.round,
 
-        players: [...room.players.values()].map(player => ({
-            id: player.id,
-            name: player.name,
-            symbol: player.symbol,
-            money: player.money,
-            position: player.position,
-            properties: player.properties,
-            stocks: player.stocks,
-            loan: player.loan,
-            active: player.active,
-            skip: player.skip,
-            milestone: player.milestone,
-            connected: Boolean(player.ws)
-        }))
+        currentTurn:
+            room.currentTurn,
+
+        turnOrder:
+            room.turnOrder,
+
+        stockPrice:
+            room.stockPrice,
+
+        lastDice:
+            room.lastDice,
+
+        log:
+            room.log.slice(-100),
+
+        fields:
+
+            JSON.parse(
+                JSON.stringify(fields)
+            ),
+
+        players:
+
+            [...room.players.values()]
+                .map(
+                    player => ({
+
+                        id:
+                            player.id,
+
+                        name:
+                            player.name,
+
+                        symbol:
+                            player.symbol,
+
+                        money:
+                            player.money,
+
+                        position:
+                            player.position,
+
+                        properties:
+                            player.properties,
+
+                        stocks:
+                            player.stocks,
+
+                        loan:
+                            player.loan,
+
+                        active:
+                            player.active,
+
+                        skip:
+                            player.skip,
+
+                        milestone:
+                            player.milestone,
+
+                        connected:
+                            Boolean(player.ws)
+
+                    })
+                )
     };
 }
 
@@ -367,66 +421,144 @@ function createPublicGame(room) {
    LOG
 ========================================================= */
 
-function addLog(room, text) {
-    room.log.push(text);
+function addLog(room, message) {
 
-    if (room.log.length > 100) {
-        room.log = room.log.slice(-100);
+    room.log.push(message);
+
+    if (
+        room.log.length > 100
+    ) {
+        room.log =
+            room.log.slice(-100);
     }
 }
 
 
 /* =========================================================
-   NEUEN RAUM
+   BROADCAST STATE
 ========================================================= */
 
-function createRoom(name, ws) {
-    const code = randomRoomCode();
-    const id = randomId();
+function broadcastGame(room) {
+
+    broadcast(
+        room,
+        "state",
+        {
+            game:
+                publicGame(room)
+        }
+    );
+}
+
+
+/* =========================================================
+   RAUM ERSTELLEN
+========================================================= */
+
+function createRoom(
+    name,
+    ws
+) {
+
+    const code =
+        randomRoomCode();
+
+    const id =
+        randomId();
+
 
     const player = {
+
         id,
+
         name,
-        symbol: symbols[0],
-        money: START_MONEY,
-        position: 0,
-        properties: [],
-        stocks: 0,
-        loan: 0,
-        active: true,
-        skip: 0,
-        milestone: false,
+
+        symbol:
+            symbols[0],
+
+        money:
+            START_MONEY,
+
+        position:
+            0,
+
+        properties:
+            [],
+
+        stocks:
+            0,
+
+        loan:
+            0,
+
+        active:
+            true,
+
+        skip:
+            0,
+
+        milestone:
+            false,
+
         ws
+
     };
+
 
     const room = {
+
         code,
-        hostId: id,
-        status: "lobby",
 
-        round: 1,
-        currentTurn: 0,
-        turnOrder: [id],
+        hostId:
+            id,
 
-        stockPrice: 100,
-        lastDice: null,
+        status:
+            "lobby",
 
-        players: new Map([
-            [id, player]
-        ]),
+        round:
+            1,
 
-        log: []
+        currentTurn:
+            0,
+
+        turnOrder:
+            [id],
+
+        stockPrice:
+            100,
+
+        lastDice:
+            null,
+
+        players:
+            new Map([
+                [id, player]
+            ]),
+
+        log:
+            []
+
     };
 
-    rooms.set(code, room);
+
+    rooms.set(
+        code,
+        room
+    );
+
+
+    ws.playerId =
+        id;
+
+    ws.roomCode =
+        code;
+
 
     addLog(
         room,
         `🏠 Raum ${code} wurde erstellt.`
     );
 
-    ws.playerId = id;
-    ws.roomCode = code;
 
     return room;
 }
@@ -436,72 +568,187 @@ function createRoom(name, ws) {
    RAUM BEITRETEN
 ========================================================= */
 
-function joinRoom(code, name, ws) {
-    const room = rooms.get(code);
+function joinRoom(
+    code,
+    name,
+    ws
+) {
+
+    const room =
+        rooms.get(code);
+
 
     if (!room) {
-        send(ws, "error", {
-            message: "Raum nicht gefunden."
-        });
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Raum nicht gefunden."
+            }
+        );
+
         return;
     }
 
-    if (room.status !== "lobby") {
-        send(ws, "error", {
-            message: "Das Spiel läuft bereits."
-        });
-        return;
-    }
-
-    if (room.players.size >= 4) {
-        send(ws, "error", {
-            message: "Der Raum ist voll."
-        });
-        return;
-    }
-
-    const existingNames =
-        [...room.players.values()]
-            .map(player => player.name.toLowerCase());
 
     if (
-        existingNames.includes(
+        room.status !== "lobby"
+    ) {
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Das Spiel läuft bereits."
+            }
+        );
+
+        return;
+    }
+
+
+    if (
+        room.players.size >= 4
+    ) {
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Der Raum ist voll."
+            }
+        );
+
+        return;
+    }
+
+
+    const names =
+        [...room.players.values()]
+            .map(
+                player =>
+                    player.name.toLowerCase()
+            );
+
+
+    if (
+        names.includes(
             name.toLowerCase()
         )
     ) {
-        send(ws, "error", {
-            message: "Dieser Name ist bereits vergeben."
-        });
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Dieser Name ist bereits vergeben."
+            }
+        );
+
         return;
     }
 
-    const id = randomId();
+
+    const id =
+        randomId();
+
+
+    const playerIndex =
+        room.players.size;
+
 
     const player = {
+
         id,
+
         name,
-        symbol: symbols[room.players.size],
-        money: START_MONEY,
-        position: 0,
-        properties: [],
-        stocks: 0,
-        loan: 0,
-        active: true,
-        skip: 0,
-        milestone: false,
+
+        symbol:
+            symbols[playerIndex],
+
+        money:
+            START_MONEY,
+
+        position:
+            0,
+
+        properties:
+            [],
+
+        stocks:
+            0,
+
+        loan:
+            0,
+
+        active:
+            true,
+
+        skip:
+            0,
+
+        milestone:
+            false,
+
         ws
+
     };
 
-    room.players.set(id, player);
-    room.turnOrder.push(id);
 
-    ws.playerId = id;
-    ws.roomCode = code;
+    room.players.set(
+        id,
+        player
+    );
+
+
+    room.turnOrder.push(
+        id
+    );
+
+
+    /*
+     * SEHR WICHTIG:
+     * Spieler-ID auf diesem WebSocket speichern.
+     */
+
+    ws.playerId =
+        id;
+
+    ws.roomCode =
+        code;
+
 
     addLog(
         room,
         `${player.symbol} ${player.name} ist beigetreten.`
     );
+
+
+    /*
+     * ID direkt an Spieler 2/3/4 senden.
+     */
+
+    send(
+        ws,
+        "roomJoined",
+        {
+            roomCode:
+                code,
+
+            playerId:
+                id
+        }
+    );
+
+
+    /*
+     * Danach gesamten Spielstand senden.
+     */
 
     broadcastGame(room);
 }
@@ -511,29 +758,62 @@ function joinRoom(code, name, ws) {
    SPIEL STARTEN
 ========================================================= */
 
-function startGame(room, ws) {
-    if (room.hostId !== ws.playerId) {
-        send(ws, "error", {
-            message: "Nur der Host kann starten."
-        });
+function startGame(
+    room,
+    ws
+) {
+
+    if (
+        ws.playerId !== room.hostId
+    ) {
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Nur der Host kann das Spiel starten."
+            }
+        );
+
         return;
     }
 
-    if (room.players.size < 2) {
-        send(ws, "error", {
-            message: "Mindestens 2 Spieler sind nötig."
-        });
+
+    if (
+        room.players.size < 2
+    ) {
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Mindestens 2 Spieler sind nötig."
+            }
+        );
+
         return;
     }
 
-    room.status = "playing";
-    room.round = 1;
-    room.currentTurn = 0;
+
+    room.status =
+        "playing";
+
+
+    room.currentTurn =
+        0;
+
+
+    room.round =
+        1;
+
 
     addLog(
         room,
         "🎮 Das Spiel beginnt!"
     );
+
 
     broadcastGame(room);
 }
@@ -543,264 +823,516 @@ function startGame(room, ws) {
    WÜRFELN
 ========================================================= */
 
-function rollDice(room, ws) {
-    if (room.status !== "playing") {
-        return;
-    }
-
-    const player =
-        playerById(room, ws.playerId);
-
-    const current =
-        currentPlayer(room);
-
-    if (!player || !current) {
-        return;
-    }
+function rollDice(
+    room,
+    ws
+) {
 
     if (
-        player.id !== current.id
-        ||
-        !player.active
+        room.status !== "playing"
     ) {
-        send(ws, "error", {
-            message: "Du bist nicht am Zug."
-        });
         return;
     }
 
-    if (player.skip > 0) {
+
+    const player =
+        room.players.get(
+            ws.playerId
+        );
+
+
+    const current =
+        getCurrentPlayer(room);
+
+
+    if (
+        !player ||
+        !current
+    ) {
+        return;
+    }
+
+
+    if (
+        current.id !== player.id
+    ) {
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Du bist gerade nicht dran."
+            }
+        );
+
+        return;
+    }
+
+
+    if (
+        !player.active
+    ) {
+        return;
+    }
+
+
+    /*
+     * AUSSETZEN
+     */
+
+    if (
+        player.skip > 0
+    ) {
+
         player.skip--;
+
 
         addLog(
             room,
             `⏸️ ${player.symbol} ${player.name} setzt aus.`
         );
 
+
         finishTurn(room);
+
         return;
     }
+
 
     const dice =
         Math.floor(
             Math.random() * 6
         ) + 1;
 
-    room.lastDice = dice;
+
+    room.lastDice =
+        dice;
+
 
     const oldPosition =
         player.position;
 
+
     player.position =
         (
             player.position + dice
-        ) % fields.length;
+        )
+        %
+        fields.length;
+
+
+    /*
+     * START überquert
+     */
 
     if (
-        oldPosition + dice >=
+        oldPosition + dice
+        >=
         fields.length
     ) {
-        player.money += START_BONUS;
+
+        player.money +=
+            START_BONUS;
+
 
         addLog(
             room,
             `💰 ${player.symbol} ${player.name} erhält +${START_BONUS} Fr. für START.`
         );
+
     }
+
 
     addLog(
         room,
         `🎲 ${player.symbol} ${player.name} würfelt eine ${dice}.`
     );
 
-    resolveField(room, player);
+
+    resolveField(
+        room,
+        player
+    );
 }
 
 
 /* =========================================================
-   FELD AUFLÖSEN
+   FELD
 ========================================================= */
 
-function resolveField(room, player) {
-    const field =
-        fields[player.position];
+function resolveField(
+    room,
+    player
+) {
 
-    if (!player.active) {
+    if (
+        !player.active
+    ) {
         return;
     }
 
-    if (field.type === "company") {
+
+    const field =
+        fields[player.position];
+
+
+    /*
+     * UNTERNEHMEN
+     */
+
+    if (
+        field.type === "company"
+    ) {
+
         const owner =
-            ownerOf(room, player.position);
+            ownerOf(
+                room,
+                player.position
+            );
+
 
         if (!owner) {
-            send(player.ws, "purchaseOffer", {
-                fieldIndex: player.position,
-                field
-            });
+
+            send(
+                player.ws,
+                "purchaseOffer",
+                {
+                    fieldIndex:
+                        player.position,
+
+                    field
+                }
+            );
+
+
+            broadcastGame(room);
 
             return;
+
         }
 
-        if (owner.id !== player.id) {
-            player.money -= field.rent;
-            owner.money += field.rent;
+
+        if (
+            owner.id !== player.id
+        ) {
+
+            player.money -=
+                field.rent;
+
+
+            owner.money +=
+                field.rent;
+
 
             addLog(
                 room,
                 `💸 ${player.symbol} ${player.name} zahlt ${field.rent} Fr. Miete an ${owner.symbol} ${owner.name}.`
             );
+
+
+            checkEliminations(
+                room
+            );
+
         }
 
-        checkEliminations(room);
 
-        if (room.status === "playing") {
+        if (
+            room.status === "playing"
+        ) {
             finishTurn(room);
         }
+
 
         return;
     }
 
-    if (field.type === "tax") {
-        player.money -= field.amount;
+
+    /*
+     * STEUER
+     */
+
+    if (
+        field.type === "tax"
+    ) {
+
+        player.money -=
+            field.amount;
+
 
         addLog(
             room,
             `💸 ${player.symbol} ${player.name} zahlt ${field.amount} Fr. Steuern.`
         );
 
-        checkEliminations(room);
 
-        if (room.status === "playing") {
+        if (
+            !checkEliminations(room)
+        ) {
             finishTurn(room);
         }
 
+
         return;
     }
 
-    if (field.type === "bonus") {
-        player.money += field.amount;
+
+    /*
+     * BONUS
+     */
+
+    if (
+        field.type === "bonus"
+    ) {
+
+        player.money +=
+            field.amount;
+
 
         addLog(
             room,
-            `🎁 ${player.symbol} ${player.name} erhält ${field.amount} Fr. Bonus.`
+            `🎁 ${player.symbol} ${player.name} erhält +${field.amount} Fr.`
         );
+
 
         checkMilestone(player);
+
         finishTurn(room);
+
         return;
     }
 
-    if (field.type === "police") {
-        player.skip = 1;
+
+    /*
+     * POLIZEI
+     */
+
+    if (
+        field.type === "police"
+    ) {
+
+        player.skip =
+            1;
+
 
         addLog(
             room,
-            `🚓 ${player.symbol} ${player.name} muss einmal aussetzen.`
+            `🚓 ${player.symbol} ${player.name} muss die nächste Runde aussetzen.`
         );
 
+
         finishTurn(room);
-        return;
-    }
-
-    if (field.type === "stock") {
-        send(player.ws, "stockOffer", {
-            price: room.stockPrice
-        });
 
         return;
     }
 
-    if (field.type === "bank") {
-        send(player.ws, "bankMenu");
+
+    /*
+     * BÖRSE
+     */
+
+    if (
+        field.type === "stock"
+    ) {
+
+        send(
+            player.ws,
+            "stockOffer",
+            {
+                price:
+                    room.stockPrice
+            }
+        );
+
+
+        broadcastGame(room);
+
         return;
     }
 
-    if (field.type === "build") {
-        send(player.ws, "buildMenu");
+
+    /*
+     * BANK
+     */
+
+    if (
+        field.type === "bank"
+    ) {
+
+        send(
+            player.ws,
+            "bankMenu"
+        );
+
+
+        broadcastGame(room);
+
         return;
     }
 
-    if (field.type === "risk") {
-        const win =
+
+    /*
+     * BAUPLATZ
+     */
+
+    if (
+        field.type === "build"
+    ) {
+
+        send(
+            player.ws,
+            "buildMenu"
+        );
+
+
+        broadcastGame(room);
+
+        return;
+    }
+
+
+    /*
+     * RISIKO
+     */
+
+    if (
+        field.type === "risk"
+    ) {
+
+        const won =
             Math.random() < 0.5;
 
-        if (win) {
-            player.money += 500;
+
+        if (won) {
+
+            player.money +=
+                500;
+
 
             addLog(
                 room,
                 `🎲 ${player.symbol} ${player.name} gewinnt 500 Fr. beim Risiko!`
             );
+
         } else {
-            player.money -= 400;
+
+            player.money -=
+                400;
+
 
             addLog(
                 room,
                 `🎲 ${player.symbol} ${player.name} verliert 400 Fr. beim Risiko.`
             );
+
         }
 
-        checkEliminations(room);
 
-        if (room.status === "playing") {
+        if (
+            !checkEliminations(room)
+        ) {
             finishTurn(room);
         }
+
 
         return;
     }
 
-    if (field.type === "event") {
+
+    /*
+     * EREIGNIS
+     */
+
+    if (
+        field.type === "event"
+    ) {
+
         const events = [
+
             {
-                text: "📈 Wirtschaftsboom: +300 Fr.",
-                amount: 300
+                text:
+                    "📈 Wirtschaftsboom: +300 Fr.",
+
+                amount:
+                    300
             },
+
             {
-                text: "🚗 Reparatur: -200 Fr.",
-                amount: -200
+                text:
+                    "🚗 Reparatur: -200 Fr.",
+
+                amount:
+                    -200
             },
+
             {
-                text: "💼 Investor: +500 Fr.",
-                amount: 500
+                text:
+                    "💼 Investor: +500 Fr.",
+
+                amount:
+                    500
             },
+
             {
-                text: "📦 Lieferung verloren: -250 Fr.",
-                amount: -250
+                text:
+                    "📦 Lieferung verloren: -250 Fr.",
+
+                amount:
+                    -250
             },
+
             {
-                text: "🎁 Überraschungsbonus: +400 Fr.",
-                amount: 400
+                text:
+                    "🎁 Überraschungsbonus: +400 Fr.",
+
+                amount:
+                    400
             },
+
             {
-                text: "📉 Schlechter Monat: -350 Fr.",
-                amount: -350
+                text:
+                    "📉 Schlechter Monat: -350 Fr.",
+
+                amount:
+                    -350
             }
+
         ];
+
 
         const event =
             events[
                 Math.floor(
-                    Math.random() * events.length
+                    Math.random() *
+                    events.length
                 )
             ];
 
-        player.money += event.amount;
+
+        player.money +=
+            event.amount;
+
 
         addLog(
             room,
             `${player.symbol} ${player.name}: ${event.text}`
         );
 
-        checkMilestone(player);
-        checkEliminations(room);
 
-        if (room.status === "playing") {
+        checkMilestone(player);
+
+
+        if (
+            !checkEliminations(room)
+        ) {
             finishTurn(room);
         }
 
+
         return;
     }
+
 
     finishTurn(room);
 }
@@ -810,24 +1342,30 @@ function resolveField(room, player) {
    UNTERNEHMEN KAUFEN
 ========================================================= */
 
-function buyCompany(room, ws, fieldIndex) {
+function buyCompany(
+    room,
+    ws,
+    fieldIndex
+) {
+
     const player =
-        playerById(room, ws.playerId);
+        room.players.get(
+            ws.playerId
+        );
+
 
     const current =
-        currentPlayer(room);
+        getCurrentPlayer(room);
 
-    if (!player || !current) {
-        return;
-    }
 
     if (
-        player.id !== current.id
-        ||
-        !player.active
+        !player ||
+        !current ||
+        current.id !== player.id
     ) {
         return;
     }
+
 
     if (
         player.position !== fieldIndex
@@ -835,130 +1373,218 @@ function buyCompany(room, ws, fieldIndex) {
         return;
     }
 
+
     const field =
         fields[fieldIndex];
 
-    if (!field || field.type !== "company") {
+
+    if (
+        !field ||
+        field.type !== "company"
+    ) {
         return;
     }
 
-    const owner =
-        ownerOf(room, fieldIndex);
 
-    if (owner) {
+    if (
+        ownerOf(
+            room,
+            fieldIndex
+        )
+    ) {
         return;
     }
+
 
     if (
         player.money < field.price
     ) {
-        send(ws, "error", {
-            message: "Nicht genug Geld."
-        });
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Nicht genug Geld."
+            }
+        );
+
 
         finishTurn(room);
+
         return;
     }
 
-    player.money -= field.price;
+
+    player.money -=
+        field.price;
+
 
     player.properties.push(
         fieldIndex
     );
+
 
     addLog(
         room,
         `🏢 ${player.symbol} ${player.name} kauft ${field.name} für ${field.price} Fr.`
     );
 
+
     checkMilestone(player);
+
+
     finishTurn(room);
 }
 
 
 /* =========================================================
-   AKTIE KAUFEN
+   AKTIE
 ========================================================= */
 
-function buyStockAction(room, ws, buy) {
+function buyStock(
+    room,
+    ws,
+    shouldBuy
+) {
+
     const player =
-        playerById(room, ws.playerId);
+        room.players.get(
+            ws.playerId
+        );
+
 
     const current =
-        currentPlayer(room);
+        getCurrentPlayer(room);
+
 
     if (
         !player ||
         !current ||
-        player.id !== current.id
+        current.id !== player.id
     ) {
         return;
     }
 
-    if (!buy) {
+
+    if (!shouldBuy) {
+
         finishTurn(room);
+
         return;
     }
+
 
     if (
         player.money <
         room.stockPrice
     ) {
-        send(ws, "error", {
-            message: "Nicht genug Geld für die Aktie."
-        });
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Nicht genug Geld."
+            }
+        );
+
 
         finishTurn(room);
+
         return;
     }
 
-    player.money -= room.stockPrice;
+
+    const price =
+        room.stockPrice;
+
+
+    player.money -=
+        price;
+
+
     player.stocks++;
+
 
     addLog(
         room,
-        `📈 ${player.symbol} ${player.name} kauft eine Aktie für ${room.stockPrice} Fr.`
+        `📈 ${player.symbol} ${player.name} kauft eine Aktie für ${price} Fr.`
     );
+
 
     finishTurn(room);
 }
 
 
 /* =========================================================
-   BANK / KREDIT
+   BANK
 ========================================================= */
 
-function bankAction(room, ws, action) {
+function bankAction(
+    room,
+    ws,
+    action
+) {
+
     const player =
-        playerById(room, ws.playerId);
+        room.players.get(
+            ws.playerId
+        );
+
 
     const current =
-        currentPlayer(room);
+        getCurrentPlayer(room);
+
 
     if (
         !player ||
         !current ||
-        player.id !== current.id
+        current.id !== player.id
     ) {
         return;
     }
 
-    if (action === "loan") {
-        player.money += 500;
-        player.loan += 500;
+
+    if (
+        action === "loan"
+    ) {
+
+        player.money +=
+            500;
+
+
+        player.loan +=
+            500;
+
 
         addLog(
             room,
             `🏦 ${player.symbol} ${player.name} nimmt 500 Fr. Kredit auf.`
         );
+
     }
 
-    else if (action === "repay") {
-        if (player.loan <= 0) {
-            send(ws, "error", {
-                message: "Du hast keinen Kredit."
-            });
+
+    if (
+        action === "repay"
+    ) {
+
+        if (
+            player.loan <= 0
+        ) {
+
+            send(
+                ws,
+                "error",
+                {
+                    message:
+                        "Du hast keinen Kredit."
+                }
+            );
+
         } else {
+
             const amount =
                 Math.min(
                     500,
@@ -966,87 +1592,136 @@ function bankAction(room, ws, action) {
                     player.money
                 );
 
-            player.money -= amount;
-            player.loan -= amount;
+
+            player.money -=
+                amount;
+
+
+            player.loan -=
+                amount;
+
 
             addLog(
                 room,
                 `🏦 ${player.symbol} ${player.name} zahlt ${amount} Fr. Kredit zurück.`
             );
+
         }
     }
 
-    checkEliminations(room);
 
-    if (room.status === "playing") {
-        finishTurn(room);
+    if (
+        checkEliminations(room)
+    ) {
+        return;
     }
+
+
+    finishTurn(room);
 }
 
 
 /* =========================================================
-   AUSBAU
+   BAUEN
 ========================================================= */
 
-function buildAction(room, ws) {
+function buildAction(
+    room,
+    ws
+) {
+
     const player =
-        playerById(room, ws.playerId);
+        room.players.get(
+            ws.playerId
+        );
+
 
     const current =
-        currentPlayer(room);
+        getCurrentPlayer(room);
+
 
     if (
         !player ||
         !current ||
-        player.id !== current.id
+        current.id !== player.id
     ) {
         return;
     }
+
 
     if (
         player.properties.length === 0
     ) {
-        send(ws, "error", {
-            message: "Du besitzt noch kein Unternehmen."
-        });
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Du besitzt noch kein Unternehmen."
+            }
+        );
+
 
         finishTurn(room);
+
         return;
     }
 
-    const chosen =
+
+    const selected =
         player.properties[
             Math.floor(
-                Math.random() *
+                Math.random()
+                *
                 player.properties.length
             )
         ];
 
+
     const field =
-        fields[chosen];
+        fields[selected];
+
 
     const cost =
-        Math.round(field.price * 0.5);
+        Math.round(
+            field.price * 0.5
+        );
+
 
     if (
         player.money < cost
     ) {
-        send(ws, "error", {
-            message: "Nicht genug Geld für den Ausbau."
-        });
+
+        send(
+            ws,
+            "error",
+            {
+                message:
+                    "Nicht genug Geld."
+            }
+        );
+
 
         finishTurn(room);
+
         return;
     }
 
-    player.money -= cost;
 
-    field.income += 100;
+    player.money -=
+        cost;
+
+
+    field.income +=
+        100;
+
 
     addLog(
         room,
         `🏗️ ${player.symbol} ${player.name} baut ${field.name} aus.`
     );
+
 
     finishTurn(room);
 }
@@ -1057,10 +1732,12 @@ function buildAction(room, ws) {
 ========================================================= */
 
 function collectRoundIncome(room) {
+
     const stockChange =
         Math.floor(
             Math.random() * 81
         ) - 40;
+
 
     room.stockPrice =
         Math.max(
@@ -1068,25 +1745,41 @@ function collectRoundIncome(room) {
             room.stockPrice + stockChange
         );
 
-    for (const player of room.players.values()) {
-        if (!player.active) {
+
+    for (
+        const player
+        of room.players.values()
+    ) {
+
+        if (
+            !player.active
+        ) {
             continue;
         }
+
 
         const income =
             getIncome(player);
 
-        if (income > 0) {
-            player.money += income;
+
+        if (
+            income > 0
+        ) {
+
+            player.money +=
+                income;
+
 
             addLog(
                 room,
-                `💰 ${player.symbol} ${player.name} erhält +${income} Fr.`
+                `💰 ${player.symbol} ${player.name} erhält +${income} Fr. Unternehmenseinnahmen.`
             );
-        }
 
-        checkMilestone(player);
+
+            checkMilestone(player);
+        }
     }
+
 
     checkEliminations(room);
 }
@@ -1097,135 +1790,194 @@ function collectRoundIncome(room) {
 ========================================================= */
 
 function checkEliminations(room) {
-    for (const player of room.players.values()) {
+
+    for (
+        const player
+        of room.players.values()
+    ) {
+
         if (
             player.active &&
             player.money <= 0
         ) {
-            player.active = false;
-            player.properties = [];
-            player.stocks = 0;
+
+            player.active =
+                false;
+
+
+            player.properties =
+                [];
+
+            player.stocks =
+                0;
+
 
             addLog(
                 room,
-                `💀 ${player.symbol} ${player.name} ist pleite und scheidet aus!`
+                `💀 ${player.symbol} ${player.name} scheidet aus!`
             );
         }
     }
 
+
     const alive =
         activePlayers(room);
 
-    if (alive.length === 1) {
-        room.status = "finished";
+
+    if (
+        alive.length === 1
+    ) {
+
+        room.status =
+            "finished";
+
 
         addLog(
             room,
             `🏆 ${alive[0].symbol} ${alive[0].name} gewinnt das Spiel!`
         );
 
+
         broadcastGame(room);
+
         return true;
     }
 
-    if (alive.length === 0) {
-        room.status = "finished";
+
+    if (
+        alive.length === 0
+    ) {
+
+        room.status =
+            "finished";
+
 
         addLog(
             room,
             "💀 Alle Spieler sind ausgeschieden."
         );
 
+
         broadcastGame(room);
+
         return true;
     }
+
 
     return false;
 }
 
 
 /* =========================================================
-   10.000-FR-MEILENSTEIN
+   MEILENSTEIN
 ========================================================= */
 
 function checkMilestone(player) {
+
     if (
-        player.money >= WIN_MILESTONE
+        player.money >=
+        WIN_MILESTONE
         &&
         !player.milestone
     ) {
-        player.milestone = true;
+
+        player.milestone =
+            true;
     }
 }
 
 
 /* =========================================================
-   NÄCHSTER ZUG
+   NÄCHSTER SPIELER
 ========================================================= */
 
 function finishTurn(room) {
-    if (room.status !== "playing") {
+
+    if (
+        room.status !== "playing"
+    ) {
+
         broadcastGame(room);
+
         return;
     }
 
-    const before =
+
+    let next =
         room.currentTurn;
 
-    let found = false;
+
+    const old =
+        room.currentTurn;
+
 
     for (
         let i = 1;
         i <= room.turnOrder.length;
         i++
     ) {
-        const index =
+
+        next =
             (
-                before + i
-            ) %
+                old + i
+            )
+            %
             room.turnOrder.length;
 
+
         const id =
-            room.turnOrder[index];
+            room.turnOrder[next];
+
 
         const player =
             room.players.get(id);
+
 
         if (
             player &&
             player.active
         ) {
-            room.currentTurn = index;
-            found = true;
             break;
         }
     }
 
-    if (!found) {
-        room.status = "finished";
-        broadcastGame(room);
-        return;
-    }
+
+    room.currentTurn =
+        next;
+
+
+    /*
+     * neue Runde
+     */
 
     if (
-        room.currentTurn === 0
+        next === 0
         &&
-        before !== 0
+        old !== 0
     ) {
+
         room.round++;
 
-        collectRoundIncome(room);
-
-        if (room.status !== "playing") {
-            broadcastGame(room);
-            return;
-        }
 
         addLog(
             room,
             `🔄 Runde ${room.round} beginnt.`
         );
+
+
+        collectRoundIncome(room);
+
+
+        if (
+            room.status !== "playing"
+        ) {
+
+            broadcastGame(room);
+
+            return;
+        }
     }
+
 
     broadcastGame(room);
 }
@@ -1236,36 +1988,37 @@ function finishTurn(room) {
 ========================================================= */
 
 function handleDisconnect(ws) {
-    const roomCode =
-        ws.roomCode;
-
-    const playerId =
-        ws.playerId;
-
-    if (!roomCode || !playerId) {
-        return;
-    }
 
     const room =
-        rooms.get(roomCode);
+        rooms.get(
+            ws.roomCode
+        );
+
 
     if (!room) {
         return;
     }
 
+
     const player =
-        room.players.get(playerId);
+        room.players.get(
+            ws.playerId
+        );
+
 
     if (player) {
+
         player.ws = null;
+
 
         addLog(
             room,
-            `🔌 ${player.symbol} ${player.name} ist nicht mehr verbunden.`
+            `🔌 ${player.symbol} ${player.name} ist offline.`
         );
-    }
 
-    broadcastGame(room);
+
+        broadcastGame(room);
+    }
 }
 
 
@@ -1273,219 +2026,309 @@ function handleDisconnect(ws) {
    WEBSOCKET EVENTS
 ========================================================= */
 
-wss.on("connection", ws => {
+wss.on(
+    "connection",
+    ws => {
 
-    send(ws, "connected");
-
-
-    ws.on("message", raw => {
-
-        let message;
-
-        try {
-            message =
-                JSON.parse(
-                    raw.toString()
-                );
-        } catch {
-            send(ws, "error", {
-                message: "Ungültige Nachricht."
-            });
-            return;
-        }
+        send(
+            ws,
+            "connected"
+        );
 
 
-        if (
-            message.type === "createRoom"
-        ) {
+        ws.on(
+            "message",
+            raw => {
 
-            const name =
-                String(message.name || "")
-                    .trim()
-                    .slice(0, 20);
+                let message;
 
-            if (!name) {
-                send(ws, "error", {
-                    message: "Bitte einen Namen eingeben."
-                });
-                return;
+
+                try {
+
+                    message =
+                        JSON.parse(
+                            raw.toString()
+                        );
+
+                } catch {
+
+                    send(
+                        ws,
+                        "error",
+                        {
+                            message:
+                                "Ungültige Nachricht."
+                        }
+                    );
+
+                    return;
+                }
+
+
+                /* CREATE */
+
+                if (
+                    message.type ===
+                    "createRoom"
+                ) {
+
+                    const name =
+                        String(
+                            message.name || ""
+                        )
+                            .trim()
+                            .slice(0, 20);
+
+
+                    if (!name) {
+
+                        send(
+                            ws,
+                            "error",
+                            {
+                                message:
+                                    "Bitte einen Namen eingeben."
+                            }
+                        );
+
+                        return;
+                    }
+
+
+                    const room =
+                        createRoom(
+                            name,
+                            ws
+                        );
+
+
+                    send(
+                        ws,
+                        "roomCreated",
+                        {
+                            roomCode:
+                                room.code,
+
+                            playerId:
+                                ws.playerId
+                        }
+                    );
+
+
+                    broadcastGame(room);
+
+                    return;
+                }
+
+
+                /* JOIN */
+
+                if (
+                    message.type ===
+                    "joinRoom"
+                ) {
+
+                    const name =
+                        String(
+                            message.name || ""
+                        )
+                            .trim()
+                            .slice(0, 20);
+
+
+                    const code =
+                        String(
+                            message.code || ""
+                        )
+                            .trim()
+                            .toUpperCase();
+
+
+                    if (
+                        !name ||
+                        code.length !== 6
+                    ) {
+
+                        send(
+                            ws,
+                            "error",
+                            {
+                                message:
+                                    "Name oder Raumcode ungültig."
+                            }
+                        );
+
+                        return;
+                    }
+
+
+                    joinRoom(
+                        code,
+                        name,
+                        ws
+                    );
+
+                    return;
+                }
+
+
+                const room =
+                    rooms.get(
+                        ws.roomCode
+                    );
+
+
+                if (!room) {
+
+                    send(
+                        ws,
+                        "error",
+                        {
+                            message:
+                                "Du bist in keinem Raum."
+                        }
+                    );
+
+                    return;
+                }
+
+
+                /* START */
+
+                if (
+                    message.type ===
+                    "startGame"
+                ) {
+
+                    startGame(
+                        room,
+                        ws
+                    );
+
+                    return;
+                }
+
+
+                /* ROLL */
+
+                if (
+                    message.type ===
+                    "roll"
+                ) {
+
+                    rollDice(
+                        room,
+                        ws
+                    );
+
+                    return;
+                }
+
+
+                /* BUY COMPANY */
+
+                if (
+                    message.type ===
+                    "buyCompany"
+                ) {
+
+                    buyCompany(
+                        room,
+                        ws,
+                        Number(
+                            message.fieldIndex
+                        )
+                    );
+
+                    return;
+                }
+
+
+                /* STOCK */
+
+                if (
+                    message.type ===
+                    "buyStock"
+                ) {
+
+                    buyStock(
+                        room,
+                        ws,
+                        Boolean(
+                            message.buy
+                        )
+                    );
+
+                    return;
+                }
+
+
+                /* BANK */
+
+                if (
+                    message.type ===
+                    "bank"
+                ) {
+
+                    bankAction(
+                        room,
+                        ws,
+                        message.action
+                    );
+
+                    return;
+                }
+
+
+                /* BUILD */
+
+                if (
+                    message.type ===
+                    "build"
+                ) {
+
+                    buildAction(
+                        room,
+                        ws
+                    );
+
+                    return;
+                }
+
             }
-
-            const room =
-                createRoom(
-                    name,
-                    ws
-                );
-
-            send(ws, "roomCreated", {
-                roomCode: room.code,
-                playerId: ws.playerId
-            });
-
-            broadcastGame(room);
-
-            return;
-        }
+        );
 
 
-        if (
-            message.type === "joinRoom"
-        ) {
-
-            const name =
-                String(message.name || "")
-                    .trim()
-                    .slice(0, 20);
-
-            const code =
-                String(message.code || "")
-                    .trim()
-                    .toUpperCase();
-
-            if (!name || code.length !== 6) {
-                send(ws, "error", {
-                    message: "Name oder Raumcode ungültig."
-                });
-                return;
+        ws.on(
+            "close",
+            () => {
+                handleDisconnect(ws);
             }
-
-            joinRoom(
-                code,
-                name,
-                ws
-            );
-
-            return;
-        }
+        );
 
 
-        const room =
-            rooms.get(ws.roomCode);
-
-        if (!room) {
-            send(ws, "error", {
-                message: "Du bist in keinem Raum."
-            });
-            return;
-        }
-
-
-        if (
-            message.type === "startGame"
-        ) {
-
-            startGame(room, ws);
-            return;
-        }
-
-
-        if (
-            message.type === "roll"
-        ) {
-
-            rollDice(room, ws);
-            return;
-        }
-
-
-        if (
-            message.type === "buyCompany"
-        ) {
-
-            buyCompany(
-                room,
-                ws,
-                Number(message.fieldIndex)
-            );
-
-            return;
-        }
-
-
-        if (
-            message.type === "buyStock"
-        ) {
-
-            buyStockAction(
-                room,
-                ws,
-                Boolean(message.buy)
-            );
-
-            return;
-        }
-
-
-        if (
-            message.type === "bank"
-        ) {
-
-            bankAction(
-                room,
-                ws,
-                message.action
-            );
-
-            return;
-        }
-
-
-        if (
-            message.type === "build"
-        ) {
-
-            buildAction(
-                room,
-                ws
-            );
-
-            return;
-        }
-
-
-        if (
-            message.type === "reset"
-        ) {
-
-            if (
-                room.hostId !== ws.playerId
-            ) {
-                return;
+        ws.on(
+            "error",
+            () => {
+                handleDisconnect(ws);
             }
-
-            rooms.delete(
-                room.code
-            );
-
-            send(ws, "reset");
-
-            return;
-        }
-
-    });
-
-
-    ws.on("close", () => {
-        handleDisconnect(ws);
-    });
-
-
-    ws.on("error", () => {
-        handleDisconnect(ws);
-    });
-
-});
+        );
+    }
+);
 
 
 /* =========================================================
-   SERVER START
+   START SERVER
 ========================================================= */
 
 server.listen(
     PORT,
+    "0.0.0.0",
     () => {
+
         console.log(
             `Business City läuft auf Port ${PORT}`
         );
+
     }
 );
