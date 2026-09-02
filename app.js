@@ -6,7 +6,7 @@ let myPlayerId = null;
 
 
 /* =========================================================
-   VERBINDEN
+   VERBINDUNG
 ========================================================= */
 
 function connect() {
@@ -15,6 +15,7 @@ function connect() {
         location.protocol === "https:"
             ? "wss"
             : "ws";
+
 
     socket =
         new WebSocket(
@@ -54,15 +55,23 @@ function connect() {
 
     socket.onmessage = event => {
 
-        const message =
-            JSON.parse(
-                event.data
-            );
+        let message;
+
+        try {
+
+            message =
+                JSON.parse(
+                    event.data
+                );
+
+        } catch {
+
+            return;
+        }
+
 
         handleMessage(message);
-
     };
-
 }
 
 
@@ -72,24 +81,22 @@ function connect() {
 
 function handleMessage(message) {
 
-    if (
-        message.type === "connected"
-    ) {
-        return;
-    }
-
+    /* Spieler hat Raum erstellt */
 
     if (
-        message.type === "roomCreated"
+        message.type ===
+        "roomCreated"
     ) {
 
         myPlayerId =
             message.playerId;
 
+
         document.getElementById(
             "roomCode"
         ).textContent =
             message.roomCode;
+
 
         showRoom();
 
@@ -97,12 +104,54 @@ function handleMessage(message) {
     }
 
 
+    /* Spieler ist Raum beigetreten */
+
     if (
-        message.type === "state"
+        message.type ===
+        "roomJoined"
+    ) {
+
+        /*
+         * DAS IST DIE WICHTIGE KORREKTUR
+         */
+
+        myPlayerId =
+            message.playerId;
+
+
+        document.getElementById(
+            "roomCode"
+        ).textContent =
+            message.roomCode;
+
+
+        showRoom();
+
+        return;
+    }
+
+
+    /* Server bestätigt Verbindung */
+
+    if (
+        message.type ===
+        "connected"
+    ) {
+
+        return;
+    }
+
+
+    /* Spielstand */
+
+    if (
+        message.type ===
+        "state"
     ) {
 
         gameState =
             message.game;
+
 
         render();
 
@@ -110,53 +159,11 @@ function handleMessage(message) {
     }
 
 
-    if (
-        message.type === "purchaseOffer"
-    ) {
-
-        showPurchaseOffer(
-            message.fieldIndex,
-            message.field
-        );
-
-        return;
-    }
-
+    /* Fehler */
 
     if (
-        message.type === "stockOffer"
-    ) {
-
-        showStockOffer(
-            message.price
-        );
-
-        return;
-    }
-
-
-    if (
-        message.type === "bankMenu"
-    ) {
-
-        showBankMenu();
-
-        return;
-    }
-
-
-    if (
-        message.type === "buildMenu"
-    ) {
-
-        showBuildMenu();
-
-        return;
-    }
-
-
-    if (
-        message.type === "error"
+        message.type ===
+        "error"
     ) {
 
         alert(
@@ -168,26 +175,77 @@ function handleMessage(message) {
     }
 
 
+    /* Kaufangebot */
+
     if (
-        message.type === "reset"
+        message.type ===
+        "purchaseOffer"
     ) {
 
-        location.reload();
+        showPurchaseOffer(
+            message.fieldIndex,
+            message.field
+        );
 
+        return;
     }
 
+
+    /* Börse */
+
+    if (
+        message.type ===
+        "stockOffer"
+    ) {
+
+        showStockOffer(
+            message.price
+        );
+
+        return;
+    }
+
+
+    /* Bank */
+
+    if (
+        message.type ===
+        "bankMenu"
+    ) {
+
+        showBankMenu();
+
+        return;
+    }
+
+
+    /* Bauen */
+
+    if (
+        message.type ===
+        "buildMenu"
+    ) {
+
+        showBuildMenu();
+
+        return;
+    }
 }
 
 
 /* =========================================================
-   SOCKET SENDEN
+   SENDEN
 ========================================================= */
 
-function send(type, data = {}) {
+function send(
+    type,
+    data = {}
+) {
 
     if (
         !socket ||
-        socket.readyState !== WebSocket.OPEN
+        socket.readyState !==
+            WebSocket.OPEN
     ) {
 
         alert(
@@ -200,16 +258,18 @@ function send(type, data = {}) {
 
     socket.send(
         JSON.stringify({
+
             type,
+
             ...data
+
         })
     );
-
 }
 
 
 /* =========================================================
-   LOBBY
+   RAUM ERSTELLEN
 ========================================================= */
 
 function createRoom() {
@@ -236,9 +296,12 @@ function createRoom() {
             name
         }
     );
-
 }
 
+
+/* =========================================================
+   RAUM BEITRETEN
+========================================================= */
 
 function joinRoom() {
 
@@ -284,9 +347,12 @@ function joinRoom() {
             code
         }
     );
-
 }
 
+
+/* =========================================================
+   ROOM
+========================================================= */
 
 function showRoom() {
 
@@ -302,21 +368,23 @@ function showRoom() {
     ).classList.remove(
         "hidden"
     );
-
 }
 
+
+/* =========================================================
+   START
+========================================================= */
 
 function startGame() {
 
     send(
         "startGame"
     );
-
 }
 
 
 /* =========================================================
-   RENDER
+   HAUPT-RENDER
 ========================================================= */
 
 function render() {
@@ -327,7 +395,8 @@ function render() {
 
 
     if (
-        gameState.status === "lobby"
+        gameState.status ===
+        "lobby"
     ) {
 
         document.getElementById(
@@ -336,11 +405,13 @@ function render() {
             "hidden"
         );
 
+
         document.getElementById(
             "game"
         ).classList.add(
             "hidden"
         );
+
 
         renderLobby();
 
@@ -363,12 +434,11 @@ function render() {
 
 
     renderGame();
-
 }
 
 
 /* =========================================================
-   LOBBY RENDER
+   LOBBY
 ========================================================= */
 
 function renderLobby() {
@@ -382,35 +452,38 @@ function renderLobby() {
     box.innerHTML = "";
 
 
-    const players =
-        gameState.players;
-
-
-    players.forEach(
+    gameState.players.forEach(
         player => {
 
             box.innerHTML += `
+
                 <div
                     style="
                         padding:10px;
+                        margin:7px 0;
                         border:1px solid #ddd;
                         border-radius:10px;
-                        margin:7px 0;
                     "
                 >
+
                     ${player.symbol}
+
                     <strong>
-                        ${escapeHtml(player.name)}
+                        ${escapeHtml(
+                            player.name
+                        )}
                     </strong>
 
                     ${
-                        player.id === gameState.hostId
+                        player.id ===
+                        gameState.hostId
                             ? " 👑 Host"
                             : ""
                     }
-                </div>
-            `;
 
+                </div>
+
+            `;
         }
     );
 
@@ -424,39 +497,26 @@ function renderLobby() {
     document.getElementById(
         "startButton"
     ).disabled =
-        players.length < 2
+        gameState.players.length < 2
         ||
         gameState.hostId !== myPlayerId;
-
 }
 
 
 /* =========================================================
-   GAME RENDER
+   GAME
 ========================================================= */
 
 function renderGame() {
+
+    const current =
+        getCurrentPlayer();
+
 
     document.getElementById(
         "round"
     ).textContent =
         gameState.round;
-
-
-    document.getElementById(
-        "dice"
-    ).textContent =
-        gameState.lastDice || "-";
-
-
-    document.getElementById(
-        "stockPrice"
-    ).textContent =
-        `${gameState.stockPrice} Fr.`;
-
-
-    const current =
-        getCurrentPlayer();
 
 
     document.getElementById(
@@ -467,23 +527,29 @@ function renderGame() {
             : "-";
 
 
-    const myPlayer =
-        gameState.players.find(
-            player =>
-                player.id === myPlayerId
-        );
+    document.getElementById(
+        "dice"
+    ).textContent =
+        gameState.lastDice ||
+        "-";
+
+
+    document.getElementById(
+        "stockPrice"
+    ).textContent =
+        `${gameState.stockPrice} Fr.`;
 
 
     const myTurn =
         current
         &&
-        current.id === myPlayerId
+        current.id ===
+            myPlayerId
         &&
-        myPlayer
+        current.active
         &&
-        myPlayer.active
-        &&
-        gameState.status === "playing";
+        gameState.status ===
+            "playing";
 
 
     document.getElementById(
@@ -495,11 +561,18 @@ function renderGame() {
     document.getElementById(
         "actionText"
     ).textContent =
-        gameState.status === "finished"
+        gameState.status ===
+            "finished"
+
             ? "🏁 Spiel beendet"
+
             : myTurn
+
                 ? "🎲 Du bist dran!"
-                : `⏳ ${current ? current.name : "..." } ist dran.`;
+
+                : current
+                    ? `⏳ ${current.name} ist dran.`
+                    : "-";
 
 
     renderBoard();
@@ -512,7 +585,8 @@ function renderGame() {
 
 
     if (
-        gameState.status === "finished"
+        gameState.status ===
+        "finished"
     ) {
 
         const winner =
@@ -528,19 +602,26 @@ function renderGame() {
                 "actionText"
             ).textContent =
                 `🏆 ${winner.name} gewinnt!`;
-
         }
-
     }
-
 }
 
 
 /* =========================================================
-   CURRENT PLAYER
+   AKTUELLER SPIELER
 ========================================================= */
 
 function getCurrentPlayer() {
+
+    if (
+        !gameState
+        ||
+        !gameState.turnOrder
+    ) {
+
+        return null;
+    }
+
 
     const id =
         gameState.turnOrder[
@@ -552,7 +633,6 @@ function getCurrentPlayer() {
         player =>
             player.id === id
     );
-
 }
 
 
@@ -581,7 +661,8 @@ function renderBoard() {
 
 
             div.className =
-                "field " + field.type;
+                "field " +
+                field.type;
 
 
             const current =
@@ -591,69 +672,78 @@ function renderBoard() {
             if (
                 current
                 &&
-                current.position === index
+                current.position ===
+                    index
             ) {
 
                 div.classList.add(
                     "current"
                 );
-
             }
 
 
             let html =
-                `<strong>${escapeHtml(field.name)}</strong>`;
+                `<strong>${escapeHtml(
+                    field.name
+                )}</strong>`;
 
 
             if (
-                field.type === "company"
+                field.type ===
+                "company"
             ) {
 
                 html += `
+
                     <small>
-                        💰 Kauf: ${field.price} Fr.
+                        💰 Kauf:
+                        ${money(field.price)} Fr.
                     </small>
 
                     <small>
-                        💵 Miete: ${field.rent} Fr.
+                        💵 Miete:
+                        ${money(field.rent)} Fr.
                     </small>
 
                     <small>
-                        📈 +${field.income} Fr./Runde
+                        📈 +
+                        ${money(field.income)}
+                        Fr./Runde
                     </small>
+
                 `;
-
             }
 
 
             if (
-                field.type === "tax"
+                field.type ===
+                "tax"
             ) {
 
                 html += `
                     <small>
-                        💸 -${field.amount} Fr.
+                        💸 -${money(field.amount)} Fr.
                     </small>
                 `;
-
             }
 
 
             if (
-                field.type === "bonus"
+                field.type ===
+                "bonus"
             ) {
 
                 html += `
                     <small>
-                        🎁 +${field.amount} Fr.
+                        🎁 +${money(field.amount)} Fr.
                     </small>
                 `;
-
             }
 
 
             if (
-                field.type === "police"
+                field.type ===
+                "police"
             ) {
 
                 html += `
@@ -661,12 +751,12 @@ function renderBoard() {
                         🚓 1 Runde aussetzen
                     </small>
                 `;
-
             }
 
 
             if (
-                field.type === "stock"
+                field.type ===
+                "stock"
             ) {
 
                 html += `
@@ -674,12 +764,12 @@ function renderBoard() {
                         📈 Börse
                     </small>
                 `;
-
             }
 
 
             if (
-                field.type === "bank"
+                field.type ===
+                "bank"
             ) {
 
                 html += `
@@ -687,12 +777,12 @@ function renderBoard() {
                         🏦 Bank
                     </small>
                 `;
-
             }
 
 
             if (
-                field.type === "risk"
+                field.type ===
+                "risk"
             ) {
 
                 html += `
@@ -700,12 +790,12 @@ function renderBoard() {
                         🎲 Risiko
                     </small>
                 `;
-
             }
 
 
             if (
-                field.type === "build"
+                field.type ===
+                "build"
             ) {
 
                 html += `
@@ -713,25 +803,24 @@ function renderBoard() {
                         🏗️ Ausbau
                     </small>
                 `;
-
             }
 
 
             const owner =
-                findOwner(
-                    index
-                );
+                findOwner(index);
 
 
             if (owner) {
 
                 html += `
                     <small>
-                        🏠 ${owner.symbol}
-                        ${escapeHtml(owner.name)}
+                        🏠
+                        ${owner.symbol}
+                        ${escapeHtml(
+                            owner.name
+                        )}
                     </small>
                 `;
-
             }
 
 
@@ -745,12 +834,12 @@ function renderBoard() {
                     if (
                         player.active
                         &&
-                        player.position === index
+                        player.position ===
+                            index
                     ) {
 
                         html +=
                             player.symbol;
-
                     }
 
                 }
@@ -768,15 +857,13 @@ function renderBoard() {
             board.appendChild(
                 div
             );
-
         }
     );
-
 }
 
 
 /* =========================================================
-   OWNER
+   BESITZER
 ========================================================= */
 
 function findOwner(
@@ -791,48 +878,45 @@ function findOwner(
                 fieldIndex
             )
     );
-
 }
 
 
 /* =========================================================
-   PLAYERS
+   SPIELER
 ========================================================= */
 
 function renderPlayers() {
 
-    const container =
+    const box =
         document.getElementById(
             "players"
         );
 
 
-    container.innerHTML = "";
+    box.innerHTML = "";
 
 
     gameState.players.forEach(
         player => {
 
-            const div =
+            const card =
                 document.createElement(
                     "div"
                 );
 
 
-            div.className =
+            card.className =
                 "player-card";
 
 
             if (
-                player.id
-                ===
+                player.id ===
                 getCurrentPlayer()?.id
             ) {
 
-                div.classList.add(
+                card.classList.add(
                     "active"
                 );
-
             }
 
 
@@ -840,17 +924,19 @@ function renderPlayers() {
                 !player.active
             ) {
 
-                div.classList.add(
+                card.classList.add(
                     "dead"
                 );
-
             }
 
 
-            div.innerHTML = `
+            card.innerHTML = `
+
                 <h3>
                     ${player.symbol}
-                    ${escapeHtml(player.name)}
+                    ${escapeHtml(
+                        player.name
+                    )}
                 </h3>
 
                 <div>
@@ -862,53 +948,44 @@ function renderPlayers() {
                 </div>
 
                 <div>
-                    💰 ${money(player.money)}
+                    💰
+                    ${money(player.money)}
+                    Fr.
                 </div>
 
                 <div>
-                    🏢 ${player.properties.length}
+                    🏢
+                    ${player.properties.length}
                     Unternehmen
                 </div>
 
                 <div>
-                    📈 +${money(getIncome(player))}
-                    /Runde
+                    📈
+                    +${money(
+                        getIncome(player)
+                    )} Fr./Runde
                 </div>
 
                 <div>
-                    📊 ${player.stocks}
+                    📊
+                    ${player.stocks}
                     Aktien
                 </div>
 
                 <div>
                     🏦 Kredit:
                     ${money(player.loan)}
+                    Fr.
                 </div>
 
-                <div>
-                    📍
-                    ${escapeHtml(
-                        gameState.fields[
-                            player.position
-                        ].name
-                    )}
-                </div>
-
-                ${
-                    player.milestone
-                        ? "<div>🏆 10.000-Fr.-Meilenstein</div>"
-                        : ""
-                }
             `;
 
 
-            container.appendChild(
-                div
+            box.appendChild(
+                card
             );
-
         }
     );
-
 }
 
 
@@ -929,16 +1006,13 @@ function getIncome(player) {
 
 
             if (
-                field
-                &&
+                field &&
                 field.income
             ) {
 
                 total +=
                     field.income;
-
             }
-
         }
     );
 
@@ -948,30 +1022,30 @@ function getIncome(player) {
 
 
     return total;
-
 }
 
 
 /* =========================================================
-   COMPANY LIST
+   UNTERNEHMEN
 ========================================================= */
 
 function renderCompanies() {
 
-    const container =
+    const box =
         document.getElementById(
             "companies"
         );
 
 
-    container.innerHTML = "";
+    box.innerHTML = "";
 
 
     gameState.fields.forEach(
         (field, index) => {
 
             if (
-                field.type !== "company"
+                field.type !==
+                "company"
             ) {
                 return;
             }
@@ -992,24 +1066,27 @@ function renderCompanies() {
 
 
             div.innerHTML = `
+
                 <strong>
-                    ${escapeHtml(field.name)}
+                    ${escapeHtml(
+                        field.name
+                    )}
                 </strong>
 
                 <br>
 
                 💰 Kauf:
-                ${money(field.price)}
+                ${money(field.price)} Fr.
 
                 <br>
 
                 💵 Miete:
-                ${money(field.rent)}
+                ${money(field.rent)} Fr.
 
                 <br>
 
                 📈 Einkommen:
-                ${money(field.income)}/Runde
+                ${money(field.income)} Fr./Runde
 
                 <br><br>
 
@@ -1018,16 +1095,15 @@ function renderCompanies() {
                         ? `${owner.symbol} ${escapeHtml(owner.name)}`
                         : "🟢 Frei"
                 }
+
             `;
 
 
-            container.appendChild(
+            box.appendChild(
                 div
             );
-
         }
     );
-
 }
 
 
@@ -1068,10 +1144,8 @@ function renderLog() {
                 box.appendChild(
                     div
                 );
-
             }
         );
-
 }
 
 
@@ -1084,12 +1158,11 @@ function rollDice() {
     send(
         "roll"
     );
-
 }
 
 
 /* =========================================================
-   KAUFEN
+   KAUFANGEBOT
 ========================================================= */
 
 function showPurchaseOffer(
@@ -1098,152 +1171,166 @@ function showPurchaseOffer(
 ) {
 
     showPopup(
+
         "🏢 Unternehmen kaufen",
+
         `
-        <p>
-            <strong>
-                ${escapeHtml(field.name)}
-            </strong>
-        </p>
+            <p>
+                <strong>
+                    ${escapeHtml(
+                        field.name
+                    )}
+                </strong>
+            </p>
 
-        <p>
-            Kaufpreis:
-            <strong>${money(field.price)} Fr.</strong>
-        </p>
+            <p>
+                Kaufpreis:
+                <strong>
+                    ${money(field.price)} Fr.
+                </strong>
+            </p>
 
-        <p>
-            Miete:
-            <strong>${money(field.rent)} Fr.</strong>
-        </p>
+            <p>
+                Miete:
+                <strong>
+                    ${money(field.rent)} Fr.
+                </strong>
+            </p>
 
-        <p>
-            Einnahmen:
-            <strong>${money(field.income)} Fr./Runde</strong>
-        </p>
+            <p>
+                Einkommen:
+                <strong>
+                    ${money(field.income)} Fr./Runde
+                </strong>
+            </p>
         `,
+
         [
+
             {
-                text: "✅ Kaufen",
-                className: "green",
-                action: () => {
+                text:
+                    "✅ Kaufen",
 
-                    send(
-                        "buyCompany",
-                        {
-                            fieldIndex
-                        }
-                    );
+                className:
+                    "green",
 
-                    closePopup();
+                action:
+                    () => {
 
-                }
+                        send(
+                            "buyCompany",
+                            {
+                                fieldIndex
+                            }
+                        );
+
+                        closePopup();
+                    }
             },
 
             {
-                text: "❌ Nicht kaufen",
-                className: "red",
-                action: () => {
+                text:
+                    "❌ Nicht kaufen",
 
-                    closePopup();
+                className:
+                    "red",
 
-                    send(
-                        "buyCompany",
-                        {
-                            fieldIndex: -1
-                        }
-                    );
+                action:
+                    () => {
 
-                }
+                        send(
+                            "buyCompany",
+                            {
+                                fieldIndex:
+                                    -1
+                            }
+                        );
+
+                        closePopup();
+                    }
             }
+
         ]
     );
-
 }
 
 
 /* =========================================================
-   AKTIE
+   AKTIEN
 ========================================================= */
-
-function buyStock() {
-
-    const current =
-        getCurrentPlayer();
-
-
-    if (
-        !current
-        ||
-        current.id !== myPlayerId
-    ) {
-
-        return;
-    }
-
-
-    showStockOffer(
-        gameState.stockPrice
-    );
-
-}
-
 
 function showStockOffer(
     price
 ) {
 
     showPopup(
+
         "📈 Börse",
+
         `
-        <p>
-            Aktienkurs:
-            <strong>
-                ${money(price)} Fr.
-            </strong>
-        </p>
+            <p>
+                Aktienkurs:
+                <strong>
+                    ${money(price)} Fr.
+                </strong>
+            </p>
 
-        <p>
-            Jede Aktie bringt
-            <strong>60 Fr./Runde</strong>.
-        </p>
+            <p>
+                Eine Aktie bringt
+                <strong>
+                    60 Fr./Runde
+                </strong>.
+            </p>
         `,
+
         [
+
             {
-                text: "📈 Kaufen",
-                className: "green",
-                action: () => {
+                text:
+                    "📈 Kaufen",
 
-                    send(
-                        "buyStock",
-                        {
-                            buy: true
-                        }
-                    );
+                className:
+                    "green",
 
-                    closePopup();
+                action:
+                    () => {
 
-                }
+                        send(
+                            "buyStock",
+                            {
+                                buy:
+                                    true
+                            }
+                        );
+
+                        closePopup();
+                    }
             },
 
             {
-                text: "Nicht kaufen",
-                className: "red",
-                action: () => {
+                text:
+                    "Nicht kaufen",
 
-                    send(
-                        "buyStock",
-                        {
-                            buy: false
-                        }
-                    );
+                className:
+                    "red",
 
-                    closePopup();
+                action:
+                    () => {
 
-                }
+                        send(
+                            "buyStock",
+                            {
+                                buy:
+                                    false
+                            }
+                        );
+
+                        closePopup();
+                    }
             }
+
         ]
     );
-
 }
 
 
@@ -1251,93 +1338,98 @@ function showStockOffer(
    BANK
 ========================================================= */
 
-function bank() {
-
-    const current =
-        getCurrentPlayer();
-
-
-    if (
-        !current
-        ||
-        current.id !== myPlayerId
-    ) {
-
-        return;
-    }
-
-
-    showBankMenu();
-
-}
-
-
 function showBankMenu() {
 
     showPopup(
+
         "🏦 Bank",
+
         `
-        <p>
-            Du kannst 500 Fr. Kredit aufnehmen.
-        </p>
+            <p>
+                Kredit aufnehmen:
+                <strong>
+                    +500 Fr.
+                </strong>
+            </p>
 
-        <p>
-            Kredit:
-            <strong>500 Fr.</strong>
-        </p>
-
-        <p>
-            Rückzahlung:
-            bis zu 500 Fr. pro Besuch.
-        </p>
+            <p>
+                Kredit zurückzahlen:
+                <strong>
+                    500 Fr.
+                </strong>
+            </p>
         `,
+
         [
+
             {
-                text: "💰 Kredit aufnehmen",
-                className: "green",
-                action: () => {
+                text:
+                    "💰 Kredit",
 
-                    send(
-                        "bank",
-                        {
-                            action: "loan"
-                        }
-                    );
+                className:
+                    "green",
 
-                    closePopup();
+                action:
+                    () => {
 
-                }
+                        send(
+                            "bank",
+                            {
+                                action:
+                                    "loan"
+                            }
+                        );
+
+                        closePopup();
+                    }
             },
 
             {
-                text: "💸 Kredit zurückzahlen",
-                className: "orange",
-                action: () => {
+                text:
+                    "💸 Zurückzahlen",
 
-                    send(
-                        "bank",
-                        {
-                            action: "repay"
-                        }
-                    );
+                className:
+                    "orange",
 
-                    closePopup();
+                action:
+                    () => {
 
-                }
+                        send(
+                            "bank",
+                            {
+                                action:
+                                    "repay"
+                            }
+                        );
+
+                        closePopup();
+                    }
             },
 
             {
-                text: "Schließen",
-                className: "red",
-                action: () => {
+                text:
+                    "Abbrechen",
 
-                    closePopup();
+                className:
+                    "red",
 
-                }
+                action:
+                    () => {
+
+                        send(
+                            "bank",
+                            {
+                                action:
+                                    "repay"
+                            }
+                        );
+
+                        closePopup();
+                    }
             }
+
         ]
     );
-
 }
 
 
@@ -1345,74 +1437,73 @@ function showBankMenu() {
    BAUEN
 ========================================================= */
 
-function build() {
-
-    const current =
-        getCurrentPlayer();
-
-
-    if (
-        !current
-        ||
-        current.id !== myPlayerId
-    ) {
-
-        return;
-    }
-
-
-    showBuildMenu();
-
-}
-
-
 function showBuildMenu() {
 
     showPopup(
+
         "🏗️ Unternehmen ausbauen",
+
         `
-        <p>
-            Ein zufällig ausgewähltes
-            eigenes Unternehmen wird ausgebaut.
-        </p>
+            <p>
+                Ein eigenes Unternehmen
+                wird ausgebaut.
+            </p>
 
-        <p>
-            Kosten:
-            50 % des ursprünglichen Kaufpreises.
-        </p>
+            <p>
+                Kosten:
+                <strong>
+                    50 % des Kaufpreises
+                </strong>
+            </p>
 
-        <p>
-            Einkommen:
-            +100 Fr./Runde
-        </p>
+            <p>
+                Einkommen:
+                <strong>
+                    +100 Fr./Runde
+                </strong>
+            </p>
         `,
+
         [
+
             {
-                text: "🏗️ Ausbauen",
-                className: "green",
-                action: () => {
+                text:
+                    "🏗️ Ausbauen",
 
-                    send(
-                        "build"
-                    );
+                className:
+                    "green",
 
-                    closePopup();
+                action:
+                    () => {
 
-                }
+                        send(
+                            "build"
+                        );
+
+                        closePopup();
+                    }
             },
 
             {
-                text: "Abbrechen",
-                className: "red",
-                action: () => {
+                text:
+                    "Abbrechen",
 
-                    closePopup();
+                className:
+                    "red",
 
-                }
+                action:
+                    () => {
+
+                        send(
+                            "build"
+                        );
+
+                        closePopup();
+                    }
             }
+
         ]
     );
-
 }
 
 
@@ -1422,7 +1513,7 @@ function showBuildMenu() {
 
 function showPopup(
     title,
-    text,
+    html,
     buttons
 ) {
 
@@ -1435,7 +1526,7 @@ function showPopup(
     document.getElementById(
         "popupText"
     ).innerHTML =
-        text;
+        html;
 
 
     const container =
@@ -1480,7 +1571,6 @@ function showPopup(
         "popup"
     ).style.display =
         "flex";
-
 }
 
 
@@ -1490,7 +1580,6 @@ function closePopup() {
         "popup"
     ).style.display =
         "none";
-
 }
 
 
@@ -1500,11 +1589,8 @@ function closePopup() {
 
 function money(value) {
 
-    return (
-        Math.round(value)
-            .toLocaleString("de-DE")
-    );
-
+    return Math.round(value)
+        .toLocaleString("de-DE");
 }
 
 
@@ -1519,7 +1605,6 @@ function escapeHtml(text) {
         text;
 
     return div.innerHTML;
-
 }
 
 
