@@ -1,0 +1,12 @@
+{
+  "name": "business-city-online",
+  "version": "1.0.0",
+  "description": "Online Wirtschaftsspiel für 2-4 Spieler",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
